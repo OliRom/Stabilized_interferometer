@@ -1,0 +1,14 @@
+# created by virtualenv automatically
+*
+!/pyvenv.cfg
+
+!/Test2/
+
+!/Test/
+
+!/share/
+
+!/Scripts/
+
+!/Lib/
+/pyvenv.cfg
