@@ -15,13 +15,13 @@ class Pid{
 
   public:
     Pid() {};
-    Pid(float _p, float _i, float _d);
+    Pid(float p, float i, float d, int hist_length=10);
 
-    void set_params(float _p, float _i, float _d);
+    void set_params(float p, float i, float d);
     void set_target(float target);
-    void set_history_length(const int length);  // https://engineerworkshop.com/blog/variables-pointers-and-indirection-in-arduino-c/
+    //void set_history_length(const int length);  // https://engineerworkshop.com/blog/variables-pointers-and-indirection-in-arduino-c/
     
-    void command(float signal);
+    float command(float signal);
 };
 
 #endif
