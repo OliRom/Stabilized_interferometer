@@ -18,19 +18,18 @@ class PosCounter{
     float _step_conversion;
     byte _last_phase;
 
-    void _phase_change();
-    static void _interrupt_call();
-
   public:
     PosCounter(byte phase_A_pin, byte phase_B_pin, byte index_pin);
-    static void wrapper();
+
     float get_position(byte mode=0);
     /*
     Mode d'acquisition de position:
       0: retourne le nombre de phases passées
-      1: retourne le nombre de tours (4x mode 0)
+      1: retourne le nombre de tours (1/4 mode 0)
       2: retourne la position (la conversion de pas doit être spécifiée)
     */
+
+    void phase_change();
     void set_step_conversion(float step_conversion);
     void zero();
     void direction(bool sens);

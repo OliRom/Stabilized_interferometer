@@ -8,19 +8,11 @@ PosCounter::PosCounter(byte phase_A_pin, byte phase_B_pin, byte index_pin) : _A_
   pinMode(_B_pin, INPUT);
   pinMode(_I_pin, INPUT);
 
-  attachInterrupt(digitalPinToInterrupt(_I_pin), _interrupt_call, RISING);
-
   _last_phase = read_phase();
   _ptr = this;
 }
 
-void PosCounter::_interrupt_call(){
-  if (_ptr != nullptr){
-    _ptr->_phase_change();
-  }
-}
-
-void PosCounter::_phase_change(){
+void PosCounter::phase_change(){
   /*
   Sens positif: B suit A ou A fuit B
   Sens négatif: B fuit A ou A suit B
@@ -35,52 +27,17 @@ void PosCounter::_phase_change(){
   cw = (bitRead(code, 3)^bitRead(code, 0)) && ~(bitRead(code, 2)^bitRead(code, 1));
   ccw = ~(bitRead(code, 3)^bitRead(code, 0)) && (bitRead(code, 2)^bitRead(code, 1));
 
-  // Serial.println(code, BIN);
-  // Serial.print(_last_phase, BIN);
-  // Serial.print(" ");
-  // Serial.println(new_phase, BIN);
-  // Serial.print(cw);
-  // Serial.print(" ");
-  // Serial.print(ccw);
   if (cw^ccw){
     _position += (cw ^ _sens) ? +1 : -1;
   }
-  // else {Serial.print(" else");}
-  // Serial.println();
-  // Serial.println();
 
   _last_phase = new_phase;
-
-  // if (bitRead(new_phase, 0) == bitRead(_last_phase, 0)){
-  //   if (bitRead(new_phase, 1) == bitRead(new_phase, 0)){  // B suit A
-  //     avance = true;
-  //   }
-  //   else{  // B fuit A
-  //     avance = false;
-  //   }
-  // }
-
-  // else {
-  //   if (bitRead(new_phase, 1) == bitRead(new_phase, 0)){  // A suit B
-  //     avance = false;
-  //   }
-  //   else{  // A fuit B
-  //     avance = true;
-  //   }
-  // }
-
-  // _last_phase = new_phase;
-
-  // avance = (avance ^ _sens);  // XOR (exclusive or)
-
-  // if (avance){_position++;}
-  // else {_position--;}
 }
 
 float PosCounter::get_position(byte mode){
   switch (mode){
-    case 0: return (float)_position;
-    case 1: return ((float)_position * 4);
+    case 0: return static_cast<float>(_position);
+    case 1: return static_cast<float>(_position / 4);
     case 2: return ((float)_position * _step_conversion);
   }
 }
