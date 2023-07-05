@@ -5,9 +5,7 @@
 #include "CircularList.h"
 
 class PosCounter{
-  private:
-    static PosCounter* _ptr;
-    
+  private:    
     byte _A_pin;
     byte _B_pin;
     byte _I_pin;
@@ -35,13 +33,6 @@ class PosCounter{
     void direction(bool sens);
     byte read_phase();
     byte get_I_pin();
-
-    void debug(){
-      Serial.print("position: ");
-      Serial.println(_position);
-      Serial.print("last phase: ");
-      Serial.println(_last_phase);
-    }
 };
 
 #endif

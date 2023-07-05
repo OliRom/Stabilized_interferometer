@@ -1,15 +1,12 @@
 #include "Arduino.h"
 #include "PosCounter.h"
 
-PosCounter* PosCounter::_ptr = nullptr;
-
 PosCounter::PosCounter(byte phase_A_pin, byte phase_B_pin, byte index_pin) : _A_pin(phase_A_pin), _B_pin(phase_B_pin), _I_pin(index_pin) {
   pinMode(_A_pin, INPUT);
   pinMode(_B_pin, INPUT);
   pinMode(_I_pin, INPUT);
 
   _last_phase = read_phase();
-  _ptr = this;
 }
 
 void PosCounter::phase_change(){
