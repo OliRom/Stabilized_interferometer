@@ -23,7 +23,7 @@ class Pid : public Printable{
     void set_params(float p, float i, float d);
     void set_target(float target);
     void change_history_length(int length);  // https://engineerworkshop.com/blog/variables-pointers-and-indirection-in-arduino-c/
-    void set_limit(float mini=float_limit, float maxi=float_limit);
+    void set_limit(float mini, float maxi);
     
     float command(float signal, bool for_info=false);  // Utiliser le paramètre "for_info" pour ne pas ajouter le signal à l'historique des erreurs
 

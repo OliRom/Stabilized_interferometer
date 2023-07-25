@@ -11,13 +11,14 @@ class PosCounter{
     byte _I_pin;
 
     bool _sens=true;  // Mettre à false pour changer le sens d'incrémentation du compteur
+    bool _full_index_pulse;  // Mettre cette valeur à True s'il y a une interruption à chaque changement de phase et à False s'il y a une interruption au changement d'une seule des phases
 
     long _position = 0;  // Position en pas
     float _step_conversion;
     byte _last_phase;
 
   public:
-    PosCounter(byte phase_A_pin, byte phase_B_pin, byte index_pin);
+    PosCounter(byte phase_A_pin, byte phase_B_pin, byte index_pin, bool full_index_pulse);
 
     float get_position(byte mode=0);
     /*
