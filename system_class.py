@@ -6,6 +6,7 @@ import threading
 import serial as seri
 from serial.tools.list_ports import comports
 import socket
+import parameters as para
 
 
 def get_arduino_port():
@@ -24,7 +25,7 @@ class StabilizedInterferometer:
         """
         self.device = None
         self.phase = 0
-        self.k1, self.k2 = 1, 10
+        self.k1, self.k2 = para.k1, para.k2
         self.frange_defilation = False
 
     def connect_lkin(self, device_name, host="localhost"):
@@ -48,7 +49,7 @@ class StabilizedInterferometer:
         else:
             self.ardui = seri.Serial(get_arduino_port()[0].name)
 
-    def connect_socket(self, host="127.0.0.1", port=65432):
+    def connect_socket(self, host=para.host, port=para.port):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((host, port))
         self.sock.listen(1)
@@ -57,15 +58,15 @@ class StabilizedInterferometer:
         print(f"Connection établie avec: {client_address}")
         self.sock_conn.settimeout(0.1)
 
-    def lkin_setup(self, pid_params=(0.075, 3, 1e-6)):
+    def lkin_setup(self, pid_params=para.pid_param):
         """
         Fonction à appeler au début de la prise de mesures pour initialiser le lockin avec les paramètres à utiliser.
         :param pid_params: paramètres du pid (P, I, D)
         """
         # Génération du signal à 1kHz
-        self.device.oscs[0].freq(1000)
+        self.device.oscs[0].freq(para.osc_freq)
         sig = self.device.sigouts[0]
-        sig.amplitudes(0.003)  # Il faut 0.002 pour avoir 0.02 V (???)
+        sig.amplitudes(para.osc_amp / 10)  # Il faut diviser par 10 pour avoir la bonne valeur (???)
         sig.range(10)
         sig.offset(0.0)
         sig.add(True)
@@ -82,6 +83,8 @@ class StabilizedInterferometer:
             demod = self.device.demods[i]
             demod.oscselect(0)
             demod.harmonic(i + 1)
+            demod.order(para.demod_filter_order)
+            demod.timeconstant(para.demod_tm_cste)
 
         # Initialiser le PID
         pid = self.device.pids[0]
@@ -361,11 +364,11 @@ class StabilizedInterferometer:
 
 if __name__ == "__main__":
     syst = StabilizedInterferometer()
-    syst.k1, syst.k2 = 0.95, 56.5
-    syst.connect_lkin("DEV415")
+    syst.connect_lkin(para.lkin_name)
     syst.lkin_setup()
     syst.lkin_activation()
-    syst.demod_calibration()
+    if not para.bypass_calibration:
+        syst.demod_calibration()
     # syst.connect_arduino()
     # syst.connect_socket()
 
