@@ -68,8 +68,8 @@ void Ims400cc::stop_interruption(){
 
 void Ims400cc::go_to(float position, float error){
   digitalWrite(_moving_led_pin, HIGH);
-  digitalWrite(_motor_p_pin, HIGH);
-  digitalWrite(_motor_n_pin, HIGH);
+  digitalWrite(_motor_p_pin, LOW);
+  digitalWrite(_motor_n_pin, LOW);
 
   _PID.set_target(position);
   int vitesse = 0;
@@ -77,15 +77,16 @@ void Ims400cc::go_to(float position, float error){
   
   float signal = get_position(2);
   float new_signal;
+  unsigned long time = millis();
 
   while (((abs(position - signal) > error) or (vitesse > 100)) and (not _stop_flag)){
     command = _PID.command(signal) * 20;
 
     if (command < 0){
       digitalWrite(_motor_p_pin, LOW);
-      analogWrite(_motor_n_pin, -command + 136);
+      analogWrite(_motor_n_pin, -command + 139);
     } else {
-      analogWrite(_motor_p_pin, command + 136);
+      analogWrite(_motor_p_pin, command + 139);
       digitalWrite(_motor_n_pin, LOW);
     }
 
@@ -93,6 +94,13 @@ void Ims400cc::go_to(float position, float error){
     new_signal = get_position(2);
     vitesse = abs(signal - new_signal);
     signal = new_signal;
+
+    if (millis() - time > 5e3){
+      digitalWrite(_motor_n_pin, LOW);
+      digitalWrite(_motor_p_pin, LOW);
+      delay(5e3);
+      time = millis();
+    }
   }
 
   digitalWrite(_motor_p_pin, HIGH);
@@ -106,24 +114,42 @@ void Ims400cc::go_to(float position, float error){
   _stop_flag = false;
 }
 
-void Ims400cc::calibrate(){
+void Ims400cc::calibrate(int vitesse){
+  unsigned long time = millis();
+  
   digitalWrite(_moving_led_pin, HIGH);
-  analogWrite(_motor_n_pin, 140);
-  while (digitalRead(_eor_n)){}
+  analogWrite(_motor_n_pin, vitesse);
+  while (digitalRead(_eor_n)){
+    if (millis() - time > 5e3){
+      digitalWrite(_motor_n_pin, LOW);
+      delay(5e3);
+      analogWrite(_motor_n_pin, vitesse);
+      time = millis();
+    }
+  }
   digitalWrite(_motor_n_pin, LOW);
   zero();
   digitalWrite(_moving_led_pin, LOW);
-  delay(30000);
+  delay(3000);
 
+  time = millis();
   digitalWrite(_moving_led_pin, HIGH);
-  analogWrite(_motor_p_pin, 140);
-  while (digitalRead(_eor_p)){}
+  analogWrite(_motor_p_pin, vitesse);
+  while (digitalRead(_eor_p)){
+    if (millis() - time > 5e3){
+      digitalWrite(_motor_p_pin, LOW);
+      delay(5e3);
+      analogWrite(_motor_p_pin, vitesse);
+      time = millis();
+    }
+  }
   digitalWrite(_motor_p_pin, LOW);
-  _max_pos = get_position(0);
+  _max_pos = get_position(2);
   _stop_flag = false;
   digitalWrite(_moving_led_pin, LOW);
-  delay(30000);
+  delay(3000);
 
-  float pos = get_position(2);
-  go_to(pos/2, 10);
+  go_to(get_position(2)/2, 20);
 }
+
+float Ims400cc::get_max_pos(){return _max_pos;}

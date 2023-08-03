@@ -17,7 +17,7 @@ class Ims400cc : public PosCounter{
     Pid _PID;  // PID
     int _pid_delay;  // Délais en milisecondes entre chaque appel de commande du pid
     bool _stop_flag = false;  // Mettre à true pour arrêter la table de positionnement si elle est à une de ses extrémités
-    long _max_pos;  // Position maximale en nombre de pas que la table peut atteindre
+    float _max_pos;  // Position maximale en nombre de pas que la table peut atteindre
 
     void _set_promicro_pwm_prescaler(byte pin, byte prescaler);
 
@@ -43,8 +43,9 @@ class Ims400cc : public PosCounter{
     void stop_interruption();  // Interruption à appeler lorsque la table de positionnement est à une extrémité (eor déclenché)
     void zero_interrupt(){};  // Interruption à appeler lorsque le mecanical_zero est déclenché. Cette fonction n'a pas d'utilité pour l'instant et n'est donc pas définie
 
-    void go_to(float position, float error);  // Position 
-    void calibrate();
+    void go_to(float position, float error);  // Position spécifiée dans le mode 2 de get_position() du PosCounter
+    void calibrate(int vitesse=144);
+    float get_max_pos();  // Retourne la position maximale à laquelle la table peut aller
 };
 
 #endif
