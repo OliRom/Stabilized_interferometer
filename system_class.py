@@ -7,6 +7,7 @@ import serial as seri
 from serial.tools.list_ports import comports
 import socket
 import parameters as para
+import colorama as colo  # Pour printer en couleur
 
 
 def get_arduino_port():
@@ -27,6 +28,7 @@ class StabilizedInterferometer:
         self.phase = 0
         self.k1, self.k2 = para.k1, para.k2
         self.frange_defilation = False
+        self.running = False
 
     def connect_lkin(self, device_name, host="localhost"):
         """
@@ -47,13 +49,19 @@ class StabilizedInterferometer:
         if port is not None:
             self.ardui = seri.Serial(port, 9600)
         else:
-            self.ardui = seri.Serial(get_arduino_port()[0].name)
+            try:
+                self.ardui = seri.Serial(get_arduino_port()[0].name)
+            except IndexError:
+                print(colo.Fore.RED + "Aucun Arduino n'a été détecté sur les ports USB de l'ordinateur." +
+                      colo.Style.RESET_ALL)
+                exit(1)
 
     def connect_socket(self, host=para.host, port=para.port):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((host, port))
         self.sock.listen(1)
-        print("En attente d'une connection...")
+        print("En attente d'une connection pour le socket...")
+        print(f"Host: {host}\nPort: {port}")
         self.sock_conn, client_address = self.sock.accept()
         print(f"Connection établie avec: {client_address}")
         self.sock_conn.settimeout(0.1)
@@ -66,8 +74,8 @@ class StabilizedInterferometer:
         # Génération du signal à 1kHz
         self.device.oscs[0].freq(para.osc_freq)
         sig = self.device.sigouts[0]
-        sig.amplitudes(para.osc_amp / 10)  # Il faut diviser par 10 pour avoir la bonne valeur (???)
         sig.range(10)
+        sig.amplitudes(para.osc_amp / sig.range())
         sig.offset(0.0)
         sig.add(True)
 
@@ -116,12 +124,13 @@ class StabilizedInterferometer:
         aux = auxs[2]
         aux.outputselect(-2)  # outputselect = -2: PID 1
 
-    def lkin_activation(self):
+    def lkin_activation(self, enable=1):
         """
-        Activation des canaux du lockin.
+        Activation ou désactivation des canaux du lockin.
         """
-        self.device.sigouts[0].on(1)
-        self.activate_pid()
+        self.device.sigouts[0].on(enable)
+        self.activate_pid(enable)
+        self.running = bool(enable)
 
     def activate_pid(self, enable=1):
         """
@@ -130,6 +139,9 @@ class StabilizedInterferometer:
         """
         self.device.pids[0].enable(enable)
 
+    def get_pid_state(self):
+        return self.device.pids[0].enable()
+
     def set_phase(self, phase):
         """
         Définit la phase de l'interféromètre en degrés. Détecte la petite variation de phase causée par la
@@ -137,7 +149,7 @@ class StabilizedInterferometer:
         :param phase: phase (degrés)
         """
         auxs = self.device.auxouts
-        auxs[0].scale(self.k1 * 100 * np.cos(phase * np.pi / 180))
+        auxs[0].scale(-self.k1 * 100 * np.cos(phase * np.pi / 180))
         auxs[1].scale(self.k2 * 100 * np.sin(phase * np.pi / 180))
 
         self.phase = self.get_phase()
@@ -148,7 +160,7 @@ class StabilizedInterferometer:
         :return: phase de l'interféromètre (degrés)
         """
         auxs = self.device.auxouts
-        x = auxs[0].scale() / self.k1
+        x = auxs[0].scale() / -self.k1
         y = auxs[1].scale() / self.k2
 
         return np.arctan2(y, x) * 180 / np.pi
@@ -158,7 +170,7 @@ class StabilizedInterferometer:
         Définit la constante k1 pour la normalisation des signaux de démodulation.
         :param value: valeur de k1
         """
-        self.k1 = -float(value)
+        self.k1 = float(value)
         self.set_phase(45)
 
     def set_k2(self, value):
@@ -262,9 +274,8 @@ class StabilizedInterferometer:
         window.bind('<Configure>', on_window_resize)
 
         # Faire défiler les franges durant la calibration
-        running = True
-        thread = threading.Thread(target=self.defile_franges)
-        thread.start()
+        defilation_thread = threading.Thread(target=self.defile_franges)
+        defilation_thread.start()
 
         # Lancement de la boucle principale de la fenêtre
         window.mainloop()
@@ -292,6 +303,15 @@ class StabilizedInterferometer:
 
     def calibrate_resp(self):
         self.send_socket_command(self.format_command(")"))
+
+    def set_phase_resp(self, phase):
+        self.send_socket_command(self.format_command("P", [phase]))
+
+    def set_pid_state_resp(self, state):
+        self.send_socket_command(self.format_command("A", [state]))
+
+    def quit_resp(self):
+        self.send_socket_command(self.format_command("Q"))
 
     def read_arduino_command(self, n=1):
         for i in range(n):
@@ -327,6 +347,15 @@ class StabilizedInterferometer:
                     self.get_max_pos()
                 elif code == "(":
                     self.calibrate()
+                elif code == "p":
+                    self.set_phase(*args)
+                    self.set_phase_resp(self.get_phase())
+                elif code == "a":
+                    self.activate_pid(*args)
+                    self.set_pid_state_resp(self.get_pid_state())
+                elif code == "q":
+                    self.quit_resp()
+                    self.quit()
 
             except:
                 pass
@@ -336,6 +365,9 @@ class StabilizedInterferometer:
 
     def send_socket_command(self, command):
         self.sock_conn.sendall(command.encode("ascii"))
+
+    def quit(self):
+        self.lkin_activation(0)
 
     @staticmethod
     def format_command(commande, args=()):
@@ -390,3 +422,19 @@ if __name__ == "__main__":
             break
         syst.set_phase(float(comm))
         print(syst.get_phase())
+
+
+    ##########################
+    # phases = np.arange(0, 240, 30)
+    # temps_mesure = 5 * 60  # Temps de mesure en s pour chaque phase
+
+    # for i, p in enumerate(phases):
+    #     start_time = time.time()
+    #     syst.set_phase(p)
+
+    #     print(p)
+    #     if p == phases[-1]:
+    #         syst.activate_pid(0)
+
+    #     while time.time() - start_time < temps_mesure:
+    #         pass
