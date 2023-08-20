@@ -1,8 +1,12 @@
 import sys
-import time
 
 
 def is_float(string):
+    """
+    Détermine si un str peut être converti en float.
+    :param string: str à évaluer
+    :return: True si le str peut être converti en float
+    """
     try:
         float(string)
         return True
@@ -11,6 +15,11 @@ def is_float(string):
 
 
 def keyboard_listener(syst):
+    """
+    Écoute pour les commandes claviers envoyées durant l'exécution du programme et exécute certaines méthodes d'une
+    instance de la classe StabilizedInterferometer lorsque certaines touches sont pesées.
+    :param syst: instance de la classe StabilizedInterferometer
+    """
     for line in sys.stdin:
         comm = line.strip()
 

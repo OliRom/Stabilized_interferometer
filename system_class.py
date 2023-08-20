@@ -11,6 +11,10 @@ import colorama as colo  # Pour printer en couleur
 
 
 def get_arduino_port():
+    """
+    Cherche pour tous les Arduino Leonardo sur les ports série de l'ordinateur et retourne une liste contenant la
+    description des ports trouvés.
+    """
     arduino_ports = list()
     for port in comports():
         if "Arduino Leonardo" in port.description:
@@ -57,6 +61,11 @@ class StabilizedInterferometer:
                 exit(1)
 
     def connect_socket(self, host=para.host, port=para.port):
+        """
+        Méthode qui ouvre un socket et attent qu'un autre programme se connecte à lui.
+        :param host: host du socket
+        :param port: port du socket
+        """
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((host, port))
         self.sock.listen(1)
@@ -127,6 +136,7 @@ class StabilizedInterferometer:
     def lkin_activation(self, enable=1):
         """
         Activation ou désactivation des canaux du lockin.
+        :param enable: 1 si les canaux du lockin s'activent; 0 sinon
         """
         self.device.sigouts[0].on(enable)
         self.activate_pid(enable)
@@ -140,6 +150,9 @@ class StabilizedInterferometer:
         self.device.pids[0].enable(enable)
 
     def get_pid_state(self):
+        """
+        Retourne 1 si le PID est activé ou non.
+        """
         return self.device.pids[0].enable()
 
     def set_phase(self, phase):
@@ -281,39 +294,84 @@ class StabilizedInterferometer:
         window.mainloop()
 
     def go_to(self, pos, precision):
+        """
+        Envoie la commande de positionnement de la table de positionnement au Arduino.
+        :param pos: position (um)
+        :param precision: précision (um)
+        """
         self.send_arduino_command(self.format_command("@", [pos, precision]))
 
     def get_position(self):
+        """
+        Obtenir la position de la table de positionnement (um).
+        """
         self.send_arduino_command(self.format_command("?"))
 
     def get_max_pos(self):
+        """
+        Obtenir la position maximale que la table de positionnement peut aller.
+        """
         self.send_arduino_command(self.format_command("["))
 
     def calibrate(self):
+        """
+        Calibrer la table de positionnement.
+        """
         self.send_arduino_command(self.format_command("("))
 
     def go_to_resp(self, pos):
+        """
+        Envoie à travers le socket la position de la table de positionnement après un positionnement.
+        :param pos: position (um)
+        """
         self.send_socket_command(self.format_command(" ", [pos]))
 
     def get_position_resp(self, pos):
+        """
+        Envoie à travers le socket la position de la table de positionnement après l'avoir demandé.
+        :param pos: position (um)
+        """
         self.send_socket_command(self.format_command("!", [pos]))
 
     def get_max_pos_resp(self, pos):
+        """
+        Envoie à travers le socket la position maximale à laquelle la table de positionnement peut aller.
+        :param pos: position (um)
+        """
         self.send_socket_command(self.format_command("]", [pos]))
 
     def calibrate_resp(self):
+        """
+        Envoie au socket la commande disant que la calibration est terminée.
+        """
         self.send_socket_command(self.format_command(")"))
 
     def set_phase_resp(self, phase):
+        """
+        Envoie à travers le socket la nouvelle phase de l'interféromètre après un changement de phase.
+        :param phase: phase (degrés)
+        """
         self.send_socket_command(self.format_command("P", [phase]))
 
     def set_pid_state_resp(self, state):
+        """
+        Envoie à travers le socket l'état du PID de stabilisation (activé/désactivé).
+        :param state: état
+        """
         self.send_socket_command(self.format_command("A", [state]))
 
     def quit_resp(self):
+        """
+        Envoie à travers le socket le message disant que le système est en train de se fermer.
+        """
         self.send_socket_command(self.format_command("Q"))
 
     def read_arduino_command(self, n=1):
+        """
+        Lis les commandes qui sont renvoyées par le arduino, les décode et exécute les méthodes de réponse
+        associées à chaque réponse.
+        :param n: nombre de commandes à lire
+        """
         for i in range(n):
             if self.ardui.inWaiting() > 0:
                 code, args = self.decod_command(self.ardui.readline().decode("ascii"))
@@ -328,6 +386,11 @@ class StabilizedInterferometer:
                     self.calibrate_resp()
 
     def read_socket_command(self, n=1):
+        """
+        Lis les commandes qui sont envoyées à travers le socket, les décode et exécute les méthodes qui sont associées à
+        chaque code.
+        :param n: nombre de commandes à lire
+        """
         for i in range(n):
             try:
                 data = self.sock_conn.recv(1024).decode("ascii")
@@ -361,16 +424,34 @@ class StabilizedInterferometer:
                 pass
 
     def send_arduino_command(self, command):
+        """
+        Envoie une commande au Arduino en l'encodant en ascii.
+        :param command: commande à envoyer
+        """
         self.ardui.write(command.encode("ascii"))
 
     def send_socket_command(self, command):
+        """
+        Envoie une commande au socket en l'encodant en ascii.
+        :param command: commande à envoyer
+        """
         self.sock_conn.sendall(command.encode("ascii"))
 
     def quit(self):
+        """
+        Ferme tous les canaux du lock-in.
+        """
         self.lkin_activation(0)
 
     @staticmethod
     def format_command(commande, args=()):
+        """
+        Formatte un code de commande et ses arguments s'il y en a en un seul string qui peut être envoyé au Arduino ou
+        au socket.
+        :param commande: code de commande
+        :param args: arguments à passer. Les arguments doivent être ordonnés dans une variable itérable.
+        :return: commande formatée en str
+        """
         comm = "\x01" + commande
         for a in args:
             comm += str(a) + "\x2C"
@@ -382,6 +463,12 @@ class StabilizedInterferometer:
 
     @staticmethod
     def decod_command(commande):
+        """
+        Prend une chaine de caractère qui contient un code de commandes et ses arguments et la décompose pour en
+        extraire le code et les arguments s'il y en a.
+        :param commande: commande formatée en str
+        :return: tuple (code de commande, ittérable contenant les arguments s'il y en a)
+        """
         try:
             commande = commande.strip()
             commande = commande.partition(chr(0x01))[2]

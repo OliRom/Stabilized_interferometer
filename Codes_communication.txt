@@ -1,5 +1,9 @@
 Code	Caract	Arg		Signification
+
 0x01				début de transmission
+0x0A	\n			fin de transmission
+0x2C	,			séparateur
+
 0x40	@	pos, precision	go_to(pos, precision)
 0x3F	?			get_position
 0x5B	[			get_max_pos
@@ -7,21 +11,20 @@ Code	Caract	Arg		Signification
 0x70	p	phase		spécifier la phase de stabilisation
 0x61	a	bool		activer/désactiver (1/0) le PID de stabilisation
 0x71	q			fermer le système
+
 0x20	espace	pos		le déplacement est terminé et la table est à "pos"
 0x21	!	pos		la position est "pos"
 0x5D	]	pos		la position maximale à laquelle la table peut aller
 0x29	)			la calibration est terminée
-0x50	P	phase		la phase est de "phase
+0x50	P	phase		la phase est de "phase"
 0x41	A	bool		le PID de stabilisation est activé/désactivé (1/0)
 0x51	Q			le système est en train de se fermer
-0x2C	,			séparateur
-0x0A	\n			fin de transmission
 
 Syntaxe:
 <0x01> <code> [arg1] [, arg2] [, arg3] ... <CR>
 
 Exemples:
 *** Les espaces ci-dessous sont présents seulement pour l'aspect visuel. Il ne faut pas les inclure dans les messages envoyés et ne seront pas présents dans les messages reçus. ***
-0x01 0x28 0x0A			Calibrer la table de positionnement
-0x01 0x20 5000 0x0A		La table a terminé de se déplacer et est à la position 5000 (um)
-0x01 0x40 1234.5 0x2C 20 0x0A	Aller à la position 1234.5 (um) avec une précision d'au moins 20 (um)
+0x01 0x28 0x0A				Calibrer la table de positionnement
+0x01 0x20 "5000" 0x0A			La table a terminé de se déplacer et est à la position 5000 (um)
+0x01 0x40 "1234.5" 0x2C "20" 0x0A	Aller à la position 1234.5 (um) avec une précision d'au moins 20 (um)

@@ -11,6 +11,6 @@
 !/Mesures_stabilite/
 !/Lib/
 /pyvenv.cfg
-!/Socket_test.py
-!/Documentation.txt
-!/Test.py
+/Socket_test.py
+/Documentation.txt
+/Test.py
