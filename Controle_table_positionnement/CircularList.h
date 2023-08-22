@@ -1,3 +1,13 @@
+/*
+Ce fichier définit les méthodes de la classe CircularList. Les instances de CircularList sont des listes circulaires, c'est-à-dire
+qu'elles n'ont ni début, ni fin comme un cercle. Elles peuvent être utilisées pour garder en mémoire les n dernières données d'un
+système qui évolue dans le temps comme les 10 dernières erreurs d'un PID pour calculer le terme intégral.
+
+Une liste circulaire peut contenir n'importe quel type de variables et être de n'importe quelle longueur.
+
+Les méthodes de la classe sont définies plus bas.
+*/
+
 #ifndef CIRCULAR_LIST_H
 #define CIRCULAR_LIST_H
 
@@ -7,9 +17,9 @@
 template <typename T, int N = 0>
 class CircularList : public Printable{
   private:
-    T* _elements = new T[N];
-    int _position = 0;
-    int _taille = N;
+    T* _elements = new T[N];  // Liste des éléments
+    int _position = 0;  // Position du premier élément de la liste
+    int _taille = N;  // Taille de la liste
 
     int _modul(int index){
       // Convertir un index qui serait hors des bornes de la liste en un index valide
@@ -27,16 +37,15 @@ class CircularList : public Printable{
   public:
     CircularList<T, N>() {}
 
+    // Le nième élément de la liste peut être appelé avec: "obj[n]"
     T& operator[](int index){return _elements[_modul(index)];}
 
-    int get_pos(){
-      return _position;
-    }
+    // Obtenir la position du premier élément de la liste
+    int get_pos(){return _position;}
 
-    void rotate(int index=1){
-      _position = _modul(index);
-    }  // Incrémenter la position de "index". Tourne la liste de manière à aller vers les index les "plus vieux" si ajoutés avec append. Peut être négatif
-    
+    // Incrémenter la position de "index". Tourne la liste de manière à aller vers les index les "plus vieux" si ajoutés avec append. Peut être négatif
+    void rotate(int index=1){_position = _modul(index);}
+
     void append(T value){
       // Effacer le dernier élément de la liste et en ajouter un au début
       _elements[_modul(-1)] = value;
@@ -56,7 +65,8 @@ class CircularList : public Printable{
       }
     }
     
-    void replace(T value, int index=0){_elements[_modul(index)] = value;}  // Remplace l'élément à un index particulier
+    // Remplace l'élément à un index particulier
+    void replace(T value, int index=0){_elements[_modul(index)] = value;}
     
     T next(){
       // Retourne le prochain élément. Va vers les éléments les plus vieux
@@ -92,9 +102,11 @@ class CircularList : public Printable{
       return s;
     }
 
+    // Retourne le nombre d'éléments dans la liste
     int len(){return _taille;}
 
     size_t printTo(Print& p) const{
+      // Méthode appelée avec la commande: "Serial.print(obj)"
       size_t s = 0;
       
       for (int i=0; i<_taille-1; i++){
